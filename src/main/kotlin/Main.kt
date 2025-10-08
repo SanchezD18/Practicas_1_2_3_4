@@ -1,16 +1,46 @@
 package org.example
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-fun main() {
-    val name = "Kotlin"
-    //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-    // to see how IntelliJ IDEA suggests fixing it.
-    println("Hello, " + name + "!")
+class Player(val Name: String, val MaxStrength: Int){
+    val backpack = mutableListOf<Item>()
 
-    for (i in 1..5) {
-        //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-        // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-        println("i = $i")
+    fun CurrentLoad(): Int{
+        return backpack.sumOf { it.Weight }
     }
+
+    fun canAdd(objeto: Item): Boolean{
+        return (objeto.Weight + CurrentLoad()) < MaxStrength
+    }
+
+    fun ListBackpack(){
+        print("Backpack: ")
+        for (item in backpack){
+            print(item.Name +" - ")
+        }
+    }
+
+    fun TryAdd(objeto: Item){
+        if (canAdd(objeto)){
+            backpack.add(objeto)
+            println("Added ${objeto.Name} (+${objeto.Weight}). Current load: (${CurrentLoad()} / ${MaxStrength})")
+        }else{
+            println("Cannot add ${objeto.Name} (+${objeto.Weight}) no cabe. Exceeds by ${20 - (CurrentLoad() - objeto.Weight)}.")
+        }
+    }
+}
+data class Item(val Name: String, val Weight: Int)
+
+fun main() {
+    var Aranthor = Player("Aranthor", 20)
+    println("Player: ${Aranthor.Name}, MaxStrength: ${Aranthor.MaxStrength}.")
+
+    var Sword = Item("Sword", 10)
+    var Potion = Item("Potion", 3)
+    var Treasure = Item("Treasure", 8)
+
+    Aranthor.TryAdd(Sword)
+    Aranthor.TryAdd(Potion)
+    Aranthor.TryAdd(Treasure)
+    Aranthor.ListBackpack()
+
+
 }
