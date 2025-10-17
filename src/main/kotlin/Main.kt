@@ -1,46 +1,66 @@
 package org.example
 
-class Player(val Name: String, val MaxStrength: Int){
-    val backpack = mutableListOf<Item>()
 
-    fun CurrentLoad(): Int{
-        return backpack.sumOf { it.Weight }
+class Player(val name: String, val maxStrength: Int){
+    private val backpack = mutableListOf<IPickable>()
+
+
+    private fun currentLoad(): Int{
+        return backpack.sumOf { it.weight }
     }
 
-    fun canAdd(objeto: Item): Boolean{
-        return (objeto.Weight + CurrentLoad()) < MaxStrength
+    private fun canAdd(objeto: IPickable): Boolean{
+        return (objeto.weight + currentLoad()) <= maxStrength
     }
 
-    fun ListBackpack(){
+    fun listBackpack(){
         print("Backpack: ")
-        for (item in backpack){
-            print(item.Name +" - ")
-        }
+        val itemNames = backpack.map { it.name }
+        println(itemNames.joinToString(", "))
     }
 
-    fun TryAdd(objeto: Item){
+    fun tryAdd(objeto: IPickable){
         if (canAdd(objeto)){
             backpack.add(objeto)
-            println("Added ${objeto.Name} (+${objeto.Weight}). Current load: (${CurrentLoad()} / ${MaxStrength})")
+            println("Picked ${objeto.name} (+${objeto.weight}). Current load: ${currentLoad()}/${maxStrength}.")
         }else{
-            println("Cannot add ${objeto.Name} (+${objeto.Weight}) no cabe. Exceeds by ${20 - (CurrentLoad() - objeto.Weight)}.")
+            val excess = (objeto.weight + currentLoad()) - maxStrength
+            println("Cannot pick ${objeto.name} (+${objeto.weight}). Exceeds capacity by $excess (${currentLoad()}/${maxStrength}).")
         }
     }
+    
+
 }
-data class Item(val Name: String, val Weight: Int)
+class Item(override val name: String, override val weight: Int) : IPickable {
+
+    override fun canPick(item: IPickable): Boolean {
+        return item.weight <= 10
+    }
+
+}
 
 fun main() {
-    var Aranthor = Player("Aranthor", 20)
-    println("Player: ${Aranthor.Name}, MaxStrength: ${Aranthor.MaxStrength}.")
+    val aranthor = Player("Aranthor", 15)
 
-    var Sword = Item("Sword", 10)
-    var Potion = Item("Potion", 3)
-    var Treasure = Item("Treasure", 8)
+    println("Player: ${aranthor.name}, MaxStrength: ${aranthor.maxStrength}.")
 
-    Aranthor.TryAdd(Sword)
-    Aranthor.TryAdd(Potion)
-    Aranthor.TryAdd(Treasure)
-    Aranthor.ListBackpack()
+    val key = Item("Key", 1)
+    val scroll = Item("Scroll", 2)
+    val treasure = Item("Treasure", 10)
+    val potion = Item("Potion", 4)
 
+    aranthor.tryAdd(key)
+    aranthor.tryAdd(scroll)
+    aranthor.tryAdd(treasure)
+    aranthor.tryAdd(potion)
 
+    aranthor.listBackpack()
 }
+
+interface IPickable{
+    val name: String
+    val weight: Int
+
+    fun canPick(item: IPickable): Boolean
+}
+
