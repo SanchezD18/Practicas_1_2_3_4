@@ -1,103 +1,94 @@
 
-abstract class Weapon(open val name: String, open val weight: Int) {
-    abstract fun isUsable(): Boolean
-    abstract fun getUsableMessage(): String
-}
-
-open class MeleeWeapon(name: String, weight: Int) : Weapon(name, weight) {
-    override fun isUsable(): Boolean = true
-    override fun getUsableMessage(): String = "$name usable: true"
-}
-
-open class RangedWeapon(name: String, weight: Int, val ammoType: String) : Weapon(name, weight) {
-    var ammoCount: Int = 0
-    
-    override fun isUsable(): Boolean = ammoCount > 0
-    override fun getUsableMessage(): String {
-        return if (isUsable()) {
-            "$name usable: true"
-        } else {
-            "$name usable: false (no $ammoType)"
-        }
+    interface IPickable{
+        fun getName(): String
+        fun getWeight(): Double
+        fun getDamage(): Double
+        fun getSlots(): Int
     }
-    
-    fun addAmmo(count: Int) {
-        ammoCount += count
+    interface IWeapon : IPickable
+
+
+
+    abstract class WeaponDecorator(protected val weapon: IPickable) : IWeapon {
+        override fun getName(): String = weapon.getName()
+        override fun getWeight(): Double = weapon.getWeight()
+        override fun getDamage(): Double = weapon.getDamage()
+        override fun getSlots(): Int = weapon.getSlots()
     }
-}
 
-class Sword(name: String, weight: Int) : MeleeWeapon(name, weight)
-class Greatsword(name: String, weight: Int) : MeleeWeapon(name, weight)
-class Bow(name: String, weight: Int) : RangedWeapon(name, weight, "arrows")
-class Crossbow(name: String, weight: Int) : RangedWeapon(name, weight, "bolts")
 
-class Ammunition(val name: String, val weight: Int, val ammoType: String, val count: Int)
+    class IronWeapon(private val name: String, private val weight: Double, private val damage: Double, private val slots: Int) : IWeapon {
+        override fun getName(): String = name
+        override fun getWeight(): Double = weight
+        override fun getDamage(): Double = damage
+        override fun getSlots(): Int = slots
+    }
 
-class Player(val name: String, val maxStrength: Int) {
-    private val backpack = mutableListOf<Weapon>()
-    private val ammo = mutableListOf<Ammunition>()
-    private var currentLoad = 0
+    class Steel(weapon: IWeapon) : WeaponDecorator(weapon) {
+        override fun getName(): String = "Steel ${weapon.getName()}"
+        override fun getDamage(): Double = (weapon.getDamage() * 1.1)
+        override fun getWeight(): Double = weapon.getWeight() * 0.9
+    }
 
-    fun tryAdd(weapon: Weapon) {
+    class Mithril(weapon: IWeapon) : WeaponDecorator(weapon) {
+        override fun getName(): String = "Mithril ${weapon.getName()}"
+        override fun getWeight(): Double = weapon.getWeight() * 0.75
+        override fun getDamage(): Double = weapon.getDamage() * 1.2
+    }
+
+    class Epic(weapon: IWeapon) : WeaponDecorator(weapon) {
+        override fun getName(): String = "Epic ${weapon.getName()}"
+        override fun getDamage(): Double = weapon.getDamage() * 1.3
+    }
+
+
+
+    class Rare(weapon: IWeapon) : WeaponDecorator(weapon) {
+        override fun getName(): String = "Heavy ${weapon.getName()}"
+        override fun getWeight(): Double = weapon.getWeight() + 2
+        override fun getDamage(): Double = weapon.getDamage() + 4
+    }
+
+    class Player(val name: String, private val maxLoad: Int, private val maxSlots: Int) {
+        private val weapons = mutableListOf<IWeapon>()
+        private var currentLoad = 0.0
+        private var currentSlots = 0
+    
+    fun tryAdd(weapon: IWeapon) {
         if (canAdd(weapon)) {
-            backpack.add(weapon)
-            currentLoad += weapon.weight
-            println("Picked ${weapon.name}.")
+            weapons.add(weapon)
+            currentLoad += weapon.getWeight()
+            currentSlots += 1
+            println("Picked ${weapon.getName()}. Load: $currentLoad/$maxLoad. Slots: $currentSlots/$maxSlots.")
         } else {
-            val excess = (weapon.weight + currentLoad) - maxStrength
-            println("Cannot pick ${weapon.name} (+${weapon.weight}). Exceeds capacity by $excess ($currentLoad/$maxStrength).")
+            println("Cannot pick ${weapon.getName()}. Exceeds capacity.")
         }
     }
     
-    fun tryAdd(ammo: Ammunition) {
-        if (canAdd(ammo)) {
-            this.ammo.add(ammo)
-            currentLoad += ammo.weight
-            println("Picked ${ammo.name}.")
-
-            backpack.filterIsInstance<RangedWeapon>()
-                .filter { it.ammoType == ammo.ammoType }
-                .forEach { it.addAmmo(ammo.count) }
-        } else {
-            val excess = (ammo.weight + currentLoad) - maxStrength
-            println("Cannot pick ${ammo.name} (+${ammo.weight}). Exceeds capacity by $excess ($currentLoad/$maxStrength).")
-        }
-    }
-
-    private fun canAdd(item: Any): Boolean {
-        val weight = when (item) {
-            is Weapon -> item.weight
-            is Ammunition -> item.weight
-            else -> 0
-        }
-        return (weight + currentLoad) <= maxStrength
+    private fun canAdd(weapon: IWeapon): Boolean {
+        return (weapon.getWeight() + currentLoad) <= maxLoad && (currentSlots + 1) <= maxSlots
     }
     
-    fun checkWeaponStatus(weapon: Weapon) {
-        println(weapon.getUsableMessage())
+    fun showInventory() {
+        println("INVENTORY")
+        weapons.forEachIndexed { index, weapon ->
+            println("${index + 1}. ${weapon.getName()} (Weight: ${weapon.getWeight()}, Damage: ${weapon.getDamage()})")
+        }
     }
 }
-
 fun main() {
-    val player = Player("Aranthor", 20)
+    val epicMithrilSword = Epic(Mithril(IronWeapon("Sword", 6.0, 5.0, 1)))
+    val rareSteelBow = Rare(Steel(IronWeapon("Bow", 2.0, 4.0, 1)))
 
 
-    val sword = Sword("Sword", 3)
-    val greatsword = Greatsword("Greatsword", 5)
-    val bow = Bow("Bow", 2)
-    val crossbow = Crossbow("Crossbow", 4)
+    println("Created weapon: ${epicMithrilSword.getName()}")
+    println("Damage: ${epicMithrilSword.getDamage()}")
+    println("Weight: ${epicMithrilSword.getWeight()}")
+    println("Created weapon: ${rareSteelBow.getName()}")
+    println("Damage: ${rareSteelBow.getDamage()}")
+    println("Weight: ${rareSteelBow.getWeight()}")
 
-    val arrows = Ammunition("Arrow x20", 1, "arrows", 20)
-
-
-    player.checkWeaponStatus(sword)
-    player.checkWeaponStatus(greatsword)
-    player.checkWeaponStatus(bow)
-
-
-    player.tryAdd(arrows)
-
-
-    player.checkWeaponStatus(bow)
-    player.checkWeaponStatus(crossbow)
+    val player = Player("Aranthor", 20, 2)
+    player.tryAdd(epicMithrilSword)
+    player.tryAdd(rareSteelBow)
 }
